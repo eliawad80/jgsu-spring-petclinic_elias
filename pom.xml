@@ -141,6 +141,7 @@
         <version>${spring-format.version}</version>
         <executions>
           <execution>
+            <?m2e execute onConfiguration?>
             <phase>validate</phase>
             <goals>
               <goal>validate</goal>

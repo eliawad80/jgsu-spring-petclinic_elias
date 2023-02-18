@@ -1,4 +1,16 @@
-mysql:
+version : '3'
+services:
+ petclinic:
+  image: eliawad80/petclinic:elias
+  ports:
+    - "8080:8080"
+  environment:
+    - PETCLICNIC_DB=petclinic
+    - PETCLICNIC_DBUSER=petclinic
+    - PETCLICNIC_PASSWORD=petclinic
+
+ 
+ mysql:
   image: mysql:5.7
   ports:
     - "3306:3306"
@@ -10,3 +22,6 @@ mysql:
     - MYSQL_DATABASE=petclinic
   volumes:
     - "./conf.d:/etc/mysql/conf.d:ro"
+    - mysqldata:/var/lib/mysql
+volumes:
+  mysqldata:
