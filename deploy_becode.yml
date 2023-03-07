@@ -1,0 +1,105 @@
+---
+- name: Deploy petclinic with docker  Compose on Ubuntu Server
+  hosts: becode
+  become: yes
+  vars_files:
+   - /home/elie/Desktop/devops/github/BRIEFING-Ansible_elias/deploy_petclinic/passwords.yml
+  vars:
+    docker_files_dir: "/home/elie/Desktop/devops/github/BRIEFING-Ansible_elias/deploy_petclinic/"
+    # ssh_key: "{{ lookup('file', '/home/elie/Desktop/devops/github/BRIEFING-Ansible_elias/deploy_petclinic/id_rsa.pub') | from_yaml }}"
+    ssh_key: "/home/elie/Desktop/devops/github/BRIEFING-Ansible_elias/deploy_petclinic/id_rsa.pub"
+    
+  tasks:
+    - name: Copy SSH key to remote server
+      # copy:
+      #   src: "{{ ssh_key }}"
+      #   dest: "/home/becode/.ssh/authorized_keys"
+      #   owner: becode
+      #   mode: "0600"
+      ansible.posix.authorized_key:
+          user: becode
+          state: present
+          key: "{{ lookup('file', '/home/elie/Desktop/devops/github/BRIEFING-Ansible_elias/deploy_petclinic/id_rsa.pub') }}"
+          path: "~/.ssh/authorized_keys"
+      when: ssh_key is defined
+
+    - name: copy bashrcfile to remote server
+      copy:
+        src: "~/.bashrc"
+        dest: "/home/becode/.bashrc"
+        owner: becode
+        mode: "0600"
+    # - name: Change becode password
+    #   user:
+    #     name: becode
+    #     update_password: always
+    #     password: “{{ becode_newpassword | password_hash(‘sha512’) }}”
+
+
+    - name: Install Docker on remote server
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+    - name: Install docker-ce
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+    - name: Add "becode" user to "docker" group
+      user:
+        name: "becode"
+        groups: "docker"
+        append: yes
+      tags:
+        - docker
+
+    - name: Install docker-compose from official github repo
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: "u+x,g+x"
+    - name: Cloning the petclinic repo from github
+      ansible.builtin.git:
+       # owner: becode
+        repo: https://github.com/eliawad80/jgsu-spring-petclinic_elias.git
+        dest: /home/becode/jgsu-spring-petclinic
+        clone: yes
+        #version: master
+      when: false
+
+    # - name: Copy Docker files from local machine to remote server
+    #   copy:
+    #     src: "{{ docker_files_dir }}"
+    #     dest: "~/docker"
+    #     owner: "{{ ansible_user }}"
+    #     group: "{{ ansible_user }}"
+    #     mode: "0755"
+
+    - name: Run Docker Compose
+      command: >
+        /usr/local/bin/docker-compose up -d
+      args:
+        chdir: "/home/becode/jgsu-spring-petclinic"
+
+#password_hash('sha512')
+#becode_oldpassword:
+#becode_newpassword:
+#newuser1_password:
